@@ -6,9 +6,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.DoubleConsumer;
+import java.util.function.IntConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +63,12 @@ public class StockService implements IStockService{
 		BigDecimal result;
 		int n;
 		BigDecimal priceProduct = BigDecimal.ONE;
-		synchronized (tradesLookup) {
-			tradesLookup
-				.values()
-				.stream()
-				.flatMapToDouble()
-		}
+//		synchronized (tradesLookup) {
+//			tradesLookup
+//				.values()
+//				.stream()
+//				.forEach(action);;
+//		}
 		return null;
 	}
 
@@ -127,5 +130,54 @@ public class StockService implements IStockService{
 		return numerator.divide(divisor, 2, RoundingMode.HALF_EVEN);
 	}
 
+	public static void main(String[] args) {
+		Map<Stock, List<Trade>> lookup = new HashMap<>();
+		
+		List<Trade> trades = new ArrayList<>();
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(1)));
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(3)));
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(9)));
+		lookup.put(Stock.ALE, trades);
+		
+		BigDecimal multiple = trades
+		.stream()
+		.map(Trade::getPrice)
+		.reduce(BigDecimal.ONE, (p1, p2) -> p1.multiply(p2));
+		
+		System.err.println(multiple);
+		
+		GeometricMean gm = trades
+				.stream()
+				.map(Trade::getPrice)
+				.map(p -> p.doubleValue())
+				.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
+		System.err.println(gm.geometricMean());
+		
+//		lookup.values().stream()
+	}
 	
+	static class GeometricMean implements DoubleConsumer {
+		
+		private double product = 1;
+	    private int count = 0;
+	    
+	    public BigDecimal geometricMean() {
+	    	double geometricMean = 1;
+	    	if (count > 0){
+	    		geometricMean =  Math.pow(product,(1.0/count));
+	    	}
+	        return new BigDecimal(geometricMean);
+	    }
+
+		@Override
+		public void accept(double value) {
+			product *= value;
+			count++;
+		}
+		
+		public void combine(GeometricMean other) {
+			product *= other.product;
+	        count += other.count;
+	    }
+	}
 }

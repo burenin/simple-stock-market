@@ -2,9 +2,6 @@ package my.simple.stock.market;
 
 import java.math.BigDecimal;
 
-import my.simple.stock.market.Stock.Symbol;
-import my.simple.stock.market.Stock.Type;
-
 /**
  * @author andrejs.burenins
  *
@@ -140,5 +137,13 @@ public final class Stock {
 		if (type != other.type)
 			return false;
 		return true;
+	}
+	
+	
+	public static void main(String[] args) {
+		double a = 8;
+		int power = 3;
+		double sum = Math.pow(a,(1.0/power));
+		System.err.println(sum);
 	}
 }
