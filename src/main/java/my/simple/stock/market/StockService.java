@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,10 @@ public class StockService implements IStockService{
 		int n;
 		BigDecimal priceProduct = BigDecimal.ONE;
 		synchronized (tradesLookup) {
-//			tradesLookup.values().stream().flatMap(trades -> )
+			tradesLookup
+				.values()
+				.stream()
+				.flatMapToDouble()
 		}
 		return null;
 	}
