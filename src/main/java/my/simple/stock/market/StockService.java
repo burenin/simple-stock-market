@@ -4,18 +4,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.DoubleConsumer;
-import java.util.function.IntConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import my.simple.stock.market.Stock.Type;
 import my.simple.stock.market.Trade.TradeSide;
 
@@ -43,7 +40,7 @@ public class StockService implements IStockService{
 				dividentYield = divide(dividentYield, price);
 			}
 		}
-		return dividentYield;
+		return round(dividentYield);
 	}
 	
 	@Override
@@ -53,23 +50,57 @@ public class StockService implements IStockService{
 		if (divident != null) {
 			peRatio = divide(price, divident);
 		}
-		return peRatio;
+		return round(peRatio);
 	}
 	
-	
+	@Override
+	public BigDecimal calculateVolumeWeightedPrice(Stock stock) {
+		BigDecimal result = null;
+		List<Trade> trades = findTrades(stock);
+		if (!trades.isEmpty()) {
+			Collections.sort(trades, Collections.reverseOrder());
+			Calendar calendar = Calendar.getInstance();
+			calendar.add(Calendar.MINUTE, -15);
+			long minimumTimestamp = calendar.getTime().getTime();
+			
+			BigDecimal totalNumerator = BigDecimal.ZERO;
+			BigDecimal totalDenominator = BigDecimal.ZERO;
+			
+			// use Java 7 apprach			
+			for (Trade trade : trades) {
+				if (trade.getTimestamp() < minimumTimestamp) {
+					break;
+				}
+				BigDecimal price = trade.getPrice();
+				BigDecimal quantity = new BigDecimal(trade.getQuantity());
+				totalNumerator = totalNumerator.add(price.multiply(quantity));
+				totalDenominator = totalDenominator.add(quantity);
+			}
+			
+			result = divide(totalNumerator, totalDenominator);
+		}
+		return round (result);
+	}
+
 	
 	@Override
 	public BigDecimal calculateGBCEAllShareIndex() {
-		BigDecimal result;
-		int n;
-		BigDecimal priceProduct = BigDecimal.ONE;
-//		synchronized (tradesLookup) {
-//			tradesLookup
-//				.values()
-//				.stream()
-//				.forEach(action);;
-//		}
-		return null;
+		
+		// use Java 8 Stream / piplines / reduction / collection operations
+		
+		GeometricMean geometricMean = null;
+		synchronized (tradesLookup) {
+			geometricMean = tradesLookup
+					.values()																			// Collection <List<Trade>>
+					.stream()																			// Stream <List<Trade>>
+					.flatMap(t -> t.stream())   														// Stream <Trade>
+					.map(Trade::getPrice) 																// Trade's price (BigDecimal)
+					.map(p -> p.doubleValue())  														// Trade's price (double)
+					.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);		// GeometricMean (as supplier, accumulator and combiner)
+					
+		}
+		
+		return round (geometricMean.geometricMean());
 	}
 
 	@Override
@@ -86,33 +117,6 @@ public class StockService implements IStockService{
 		return trade;
 	}
 	
-	@Override
-	public BigDecimal calculateVolumeWeightedPrice(Stock stock) {
-		BigDecimal result = null;
-		List<Trade> trades = findTrades(stock);
-		if (!trades.isEmpty()) {
-			Collections.sort(trades, Collections.reverseOrder());
-			Calendar calendar = Calendar.getInstance();
-			calendar.add(Calendar.MINUTE, -15);
-			long minimumTimestamp = calendar.getTime().getTime();
-			
-			BigDecimal totalNumerator = BigDecimal.ZERO;
-			BigDecimal totalDenominator = BigDecimal.ZERO;
-			
-			for (Trade trade : trades) {
-				if (trade.getTimestamp() < minimumTimestamp) {
-					break;
-				}
-				BigDecimal price = trade.getPrice();
-				BigDecimal quantity = new BigDecimal(trade.getQuantity());
-				totalNumerator = totalNumerator.add(price.multiply(quantity));
-				totalDenominator = totalDenominator.add(quantity);
-			}
-			
-			result = divide(totalNumerator, totalDenominator);
-		}
-		return result;
-	}
 	
 	@Override
 	public List<Trade> findTrades(Stock stock) {
@@ -127,7 +131,15 @@ public class StockService implements IStockService{
 	}
 
 	private BigDecimal divide(BigDecimal numerator, BigDecimal divisor ) {
-		return numerator.divide(divisor, 2, RoundingMode.HALF_EVEN);
+		return numerator.divide(divisor, 5, RoundingMode.HALF_EVEN);
+	}
+	
+	private BigDecimal round (BigDecimal decimal) {
+		BigDecimal result = decimal;
+		if (decimal != null) {
+			result = decimal.setScale(5, RoundingMode.HALF_EVEN);
+		}
+		return result;
 	}
 
 	public static void main(String[] args) {
@@ -138,6 +150,14 @@ public class StockService implements IStockService{
 		trades.add(new Trade(0, null, 0, null, new BigDecimal(3)));
 		trades.add(new Trade(0, null, 0, null, new BigDecimal(9)));
 		lookup.put(Stock.ALE, trades);
+		
+		List<Trade> trades2 = new ArrayList<>();
+		trades2.add(new Trade(0, null, 0, null, new BigDecimal(5)));
+		lookup.put(Stock.GIN, trades2);
+		
+		List<Trade> trades3 = new ArrayList<>();
+		trades3.add(new Trade(0, null, 0, null, new BigDecimal(10)));
+		lookup.put(Stock.JOE, trades3);
 		
 		BigDecimal multiple = trades
 		.stream()
@@ -153,7 +173,10 @@ public class StockService implements IStockService{
 				.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
 		System.err.println(gm.geometricMean());
 		
-//		lookup.values().stream()
+		GeometricMean gm2 = lookup.values().stream().flatMap(t -> t.stream()).map(Trade::getPrice)
+		.map(p -> p.doubleValue())
+		.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
+		System.err.println(gm2.geometricMean());
 	}
 	
 	static class GeometricMean implements DoubleConsumer {

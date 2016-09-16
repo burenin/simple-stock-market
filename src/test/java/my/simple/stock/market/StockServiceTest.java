@@ -1,9 +1,13 @@
 package my.simple.stock.market;
 
+import static org.junit.Assert.assertEquals;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Assert;
@@ -14,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import my.simple.stock.market.Stock.Type;
+import my.simple.stock.market.StockService.GeometricMean;
 import my.simple.stock.market.Trade.TradeSide;
 
 /**
@@ -142,7 +147,61 @@ public class StockServiceTest {
 			BigDecimal calculated = stockService.calculateVolumeWeightedPrice(stock);
 			Assert.assertNotNull(calculated);
 		});
+	}
+	
+	@Test
+	public final void validateCalculationOfGBCEAllShareIndex() {
+Map<Stock, List<Trade>> lookup = new HashMap<>();
 		
+		List<Trade> trades = new ArrayList<>();
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(1)));
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(3)));
+		trades.add(new Trade(0, null, 0, null, new BigDecimal(9)));
+		lookup.put(Stock.ALE, trades);
+		
+		List<Trade> trades2 = new ArrayList<>();
+		trades2.add(new Trade(0, null, 0, null, new BigDecimal(5)));
+		lookup.put(Stock.GIN, trades2);
+		
+		List<Trade> trades3 = new ArrayList<>();
+		trades3.add(new Trade(0, null, 0, null, new BigDecimal(10)));
+		lookup.put(Stock.JOE, trades3);
+		
+		BigDecimal multiple = trades
+		.stream()
+		.map(Trade::getPrice)
+		.reduce(BigDecimal.ONE, (p1, p2) -> p1.multiply(p2));
+		
+		System.err.println(multiple);
+		
+		GeometricMean gm = trades
+				.stream()
+				.map(Trade::getPrice)
+				.map(p -> p.doubleValue())
+				.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
+		System.err.println(gm.geometricMean());
+		
+		GeometricMean gm2 = lookup.values().stream().flatMap(t -> t.stream()).map(Trade::getPrice)
+		.map(p -> p.doubleValue())
+		.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
+		System.err.println(gm2.geometricMean());
+		
+		
+		
+		Stock stock = Stock.ALE;
+		stockService.executeTrade(stock, 5, TradeSide.BUY, new BigDecimal(1));
+		stockService.executeTrade(stock, 5, TradeSide.BUY, new BigDecimal(3));
+		stockService.executeTrade(stock, 5, TradeSide.BUY, new BigDecimal(9));
+		
+		BigDecimal expected = new BigDecimal(3);  // 3-th root of (1*3*9 == 27) is 3
+		BigDecimal calculated = stockService.calculateGBCEAllShareIndex();
+		assertEquals(expected, calculated);
+		
+		// add GIN stock trade (price == 5)
+		stock = Stock.GIN;
+		stockService.executeTrade(stock, 5, TradeSide.BUY, new BigDecimal(5));
+		
+		expected = new BigDecimal(3);  // 4-th root of (1*3*9*5 == 135) is 3
 	}
 	
 	private void trade(final Stock stock) {
