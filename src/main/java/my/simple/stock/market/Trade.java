@@ -71,4 +71,10 @@ public class Trade implements Comparable<Trade>{
 	public int compareTo(Trade o) {
 		return Long.compare(timestamp, o.timestamp);
 	}
+
+	@Override
+	public String toString() {
+		return "Trade [timestamp=" + timestamp + ", stock=" + stock.getSymbol() + ", quantity=" + quantity + ", side=" + side
+				+ ", price=" + price + "]";
+	}
 }

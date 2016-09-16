@@ -4,15 +4,8 @@ import java.math.BigDecimal;
 
 /**
  * @author andrejs.burenins
- *
- */
-/**
- * @author andrejs.burenins
- *
  */
 public final class Stock {
-	
-	
 	
 	enum Symbol {
 		TEA,
@@ -27,27 +20,12 @@ public final class Stock {
 		PREFERRED
 	}
 	
-	public final static Stock TEA;
-	public final static Stock POP;
-	public final static Stock ALE;
-	public final static Stock GIN;
-	public final static Stock JOE;
-	
-	
 	private final Symbol 	symbol;
 	private final Type 		type;
 	
 	private BigDecimal 	lastDividend;
 	private BigDecimal 	fixedDividend;
 	private BigDecimal	parValue;
-	
-	static {
-		TEA = new Stock(Symbol.TEA, Type.COMMON, BigDecimal.ZERO, null, new BigDecimal(100));
-		POP = new Stock(Symbol.POP, Type.COMMON, new BigDecimal(8), null, new BigDecimal(100));
-		ALE = new Stock(Symbol.ALE, Type.COMMON, new BigDecimal(23), null, new BigDecimal(60));
-		GIN = new Stock(Symbol.GIN, Type.PREFERRED, new BigDecimal(8), new BigDecimal(2), new BigDecimal(100));
-		JOE = new Stock(Symbol.JOE, Type.COMMON, new BigDecimal(13), null, new BigDecimal(250));
-	}
 	
 	public Stock(final Symbol symbol, final Type type, BigDecimal lastDivident, BigDecimal fixedDivident, BigDecimal parValue) {
 		this.symbol = symbol;
@@ -82,11 +60,9 @@ public final class Stock {
 		return parValue;
 	}
 
-
 	public void setParValue(BigDecimal parValue) {
 		this.parValue = parValue;
 	}
-
 
 	@Override
 	public String toString() {
@@ -137,13 +113,5 @@ public final class Stock {
 		if (type != other.type)
 			return false;
 		return true;
-	}
-	
-	
-	public static void main(String[] args) {
-		double a = 8;
-		int power = 3;
-		double sum = Math.pow(a,(1.0/power));
-		System.err.println(sum);
 	}
 }

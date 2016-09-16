@@ -2,7 +2,9 @@ package my.simple.stock.market;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
+import my.simple.stock.market.Stock.Symbol;
 import my.simple.stock.market.Trade.TradeSide;
 
 /**
@@ -32,7 +34,7 @@ public interface IStockService {
 	/**
 	 * @param stock {@link Stock} 
 	 * @param price (in pennies)
-	 * @return Calculated P/E Ratio or {@code null} if {@link #calculateDividendYield(Stock)} returns {@code null}
+	 * @return Calculated P/E Ratio or {@code null} if {@link #calculateDividendYield(Stock)} returns {@code null} or {@code 0}
 	 */
 	BigDecimal calculatePERatio(final Stock stock, BigDecimal price);
 	
@@ -49,7 +51,7 @@ public interface IStockService {
 	BigDecimal calculateGBCEAllShareIndex();
 	
 	/**
-	 * Record a trade, with timestamp, quantity of shares, buy or sell indicator and traded price 
+	 * Records a trade, with timestamp, quantity of shares, buy or sell indicator and traded price 
 	 * @param stock {@link Stock} 
 	 * @param quantity quantity of shares
 	 * @param side buy or sell {@link TradeSide indicator} 
@@ -64,5 +66,13 @@ public interface IStockService {
 	 */
 	List<Trade> findTrades(final Stock stock);
 	
+	/**
+	 * @return snapshot of current trades
+	 */
+	Map<Stock, List<Trade>> tradesSnapshot();
 	
+	/**
+	 * @return lookup map of predefined stocks by stock's symbol keys
+	 */
+	Map<Symbol, Stock> getPredefinedSocks();
 }

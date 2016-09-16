@@ -8,28 +8,56 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.DoubleConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import my.simple.stock.market.Stock.Symbol;
 import my.simple.stock.market.Stock.Type;
 import my.simple.stock.market.Trade.TradeSide;
 
 /**
  * @author andrejs.burenins
- *
  */
 public class StockService implements IStockService{
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(StockService.class);
+	
+	public final static Stock TEA;
+	public final static Stock POP;
+	public final static Stock ALE;
+	public final static Stock GIN;
+	public final static Stock JOE;
+	
+	/**
+     * Set of predefined stocks
+     */
+    private final static Map<Symbol, Stock> PREDEFINED;
+	
+	static {
+		TEA = new Stock(Symbol.TEA, Type.COMMON, BigDecimal.ZERO, null, new BigDecimal(100));
+		POP = new Stock(Symbol.POP, Type.COMMON, new BigDecimal(8), null, new BigDecimal(100));
+		ALE = new Stock(Symbol.ALE, Type.COMMON, new BigDecimal(23), null, new BigDecimal(60));
+		GIN = new Stock(Symbol.GIN, Type.PREFERRED, new BigDecimal(8), new BigDecimal(2), new BigDecimal(100));
+		JOE = new Stock(Symbol.JOE, Type.COMMON, new BigDecimal(13), null, new BigDecimal(250));
+		
+		PREDEFINED = new HashMap<>();
+		PREDEFINED.put(TEA.getSymbol(), TEA);
+		PREDEFINED.put(POP.getSymbol(), POP);
+		PREDEFINED.put(ALE.getSymbol(), ALE);
+		PREDEFINED.put(GIN.getSymbol(), GIN);
+		PREDEFINED.put(JOE.getSymbol(), JOE);
+	}
 	
 	private Map<Stock, List<Trade>> tradesLookup = new ConcurrentHashMap<>();
 	
 	@Override
 	public BigDecimal calculateDividendYield(final Stock stock, BigDecimal price) {
 		BigDecimal dividentYield = null;
-		if ((price != null) && BigDecimal.ZERO.compareTo(price) != 0) {
+		if ((price != null) && (BigDecimal.ZERO.compareTo(price) != 0)) {
 			if (Type.COMMON == stock.getType()) {
 				BigDecimal lastDividend = stock.getLastDividend();
 				dividentYield = divide(lastDividend, price);
@@ -45,10 +73,12 @@ public class StockService implements IStockService{
 	
 	@Override
 	public BigDecimal calculatePERatio(final Stock stock, BigDecimal price) {
+		
 		BigDecimal peRatio = null;
-		BigDecimal divident = calculateDividendYield(stock, price);
-		if (divident != null) {
-			peRatio = divide(price, divident);
+		// specified formula is Price / Dividend (not clear which dividend is meaning (last dividend, fixed dividend or Dividend Yield). I admit it is Dividend Yield
+		BigDecimal dividend = calculateDividendYield(stock, price);
+		if ((dividend != null) && (BigDecimal.ZERO.compareTo(dividend) != 0)) {
+			peRatio = divide(price, dividend);
 		}
 		return round(peRatio);
 	}
@@ -129,6 +159,25 @@ public class StockService implements IStockService{
 		}
 		return trades;
 	}
+	
+	@Override
+	public Map<Symbol, Stock> getPredefinedSocks() {
+		return new HashMap<>(PREDEFINED);
+	}
+	
+	
+
+	@Override
+	public Map<Stock, List<Trade>> tradesSnapshot() {
+		Map<Stock, List<Trade>> snapshot = new HashMap<>();
+		synchronized (tradesLookup) {
+			for (Entry<Stock, List<Trade>> entry : tradesLookup.entrySet()) {
+				List<Trade> snapshotList = new ArrayList<>(entry.getValue());
+				snapshot.put(entry.getKey(), snapshotList);
+			}
+		}
+		return snapshot;
+	}
 
 	private BigDecimal divide(BigDecimal numerator, BigDecimal divisor ) {
 		return numerator.divide(divisor, 5, RoundingMode.HALF_EVEN);
@@ -140,43 +189,6 @@ public class StockService implements IStockService{
 			result = decimal.setScale(5, RoundingMode.HALF_EVEN);
 		}
 		return result;
-	}
-
-	public static void main(String[] args) {
-		Map<Stock, List<Trade>> lookup = new HashMap<>();
-		
-		List<Trade> trades = new ArrayList<>();
-		trades.add(new Trade(0, null, 0, null, new BigDecimal(1)));
-		trades.add(new Trade(0, null, 0, null, new BigDecimal(3)));
-		trades.add(new Trade(0, null, 0, null, new BigDecimal(9)));
-		lookup.put(Stock.ALE, trades);
-		
-		List<Trade> trades2 = new ArrayList<>();
-		trades2.add(new Trade(0, null, 0, null, new BigDecimal(5)));
-		lookup.put(Stock.GIN, trades2);
-		
-		List<Trade> trades3 = new ArrayList<>();
-		trades3.add(new Trade(0, null, 0, null, new BigDecimal(10)));
-		lookup.put(Stock.JOE, trades3);
-		
-		BigDecimal multiple = trades
-		.stream()
-		.map(Trade::getPrice)
-		.reduce(BigDecimal.ONE, (p1, p2) -> p1.multiply(p2));
-		
-		System.err.println(multiple);
-		
-		GeometricMean gm = trades
-				.stream()
-				.map(Trade::getPrice)
-				.map(p -> p.doubleValue())
-				.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
-		System.err.println(gm.geometricMean());
-		
-		GeometricMean gm2 = lookup.values().stream().flatMap(t -> t.stream()).map(Trade::getPrice)
-		.map(p -> p.doubleValue())
-		.collect(GeometricMean::new, GeometricMean::accept, GeometricMean::combine);
-		System.err.println(gm2.geometricMean());
 	}
 	
 	static class GeometricMean implements DoubleConsumer {
