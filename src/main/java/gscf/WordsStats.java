@@ -26,7 +26,7 @@ public class WordsStats {
 	private static final String FILE_OUT = PATH + "input2-example-out.txt";
 	
 	private static final String PUNCTUATION_DELIMETERS_RE 	= "[.,!?\\s]+";					// word delimiters (.,!? and whitespace characters			
-	private static final String VALID_WORD_RE 				= "\\b\\w+[\\-]{0,1}\\w+\\b";	// valid words containing alphanumeric characters or hyphen in the middle, e.g: "quasi-bird" 
+	private static final String VALID_WORD_RE 				= "\\b\\w+?[\\-]{0,1}?\\w*?\\b";	// valid words containing alphanumeric characters or hyphen in the middle, e.g: "quasi-bird" 
 	
 	
 	public static void main(String[] args) {
