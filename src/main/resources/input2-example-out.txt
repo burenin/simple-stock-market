@@ -1,0 +1,7 @@
+dorothy - 2
+creature - 1
+her - 1
+quasi-bird - 1
+saw - 1
+terrified - 1
+which - 1
